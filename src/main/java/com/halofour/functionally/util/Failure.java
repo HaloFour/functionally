@@ -122,6 +122,15 @@ public final class Failure<T> implements Try<T> {
     }
 
     @Override
+    public <R> Try<R> fold(TryFunction<Exception, R> onFailure, TryFunction<T, R> onSuccess) {
+        try {
+            return Success.of(onFailure.apply(exception));
+        } catch (Exception exception) {
+            return Failure.of(exception);
+        }
+    }
+
+    @Override
     public Try<Exception> failed() {
         return Success.of(exception);
     }

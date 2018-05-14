@@ -120,6 +120,11 @@ public final class Success<T> implements Try<T>, Serializable {
     }
 
     @Override
+    public <R> Try<R> fold(TryFunction<Exception, R> onFailure, TryFunction<T, R> onSuccess) {
+        return map(onSuccess);
+    }
+
+    @Override
     public Failure<Exception> failed() {
         return Failure.of(new UnsupportedOperationException("Cannot invert Success."));
     }

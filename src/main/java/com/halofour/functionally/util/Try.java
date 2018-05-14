@@ -141,6 +141,15 @@ public interface Try<T> extends Serializable {
     <E extends Exception> Try<T> recoverWith(Class<E> exceptionClass, TryFunction<? super E, Try<T>> function);
 
     /**
+     *
+     * @param onFailure
+     * @param onSuccess
+     * @param <R>
+     * @return
+     */
+    <R> Try<R> fold(TryFunction<Exception, R> onFailure, TryFunction<T, R> onSuccess);
+
+    /**
      * Inverts the failed computation to the successful computation of the exception
      * @return the successful computation
      */
