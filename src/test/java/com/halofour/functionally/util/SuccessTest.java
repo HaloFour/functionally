@@ -66,6 +66,12 @@ public class SuccessTest {
     @Mock
     private Consumer<Exception> ifFailureConsumer;
 
+    @Mock
+    private Predicate<Exception> failurePredicate;
+
+    @Mock
+    private TrySupplier<String> supplier;
+
     @Before
     public void setUp() throws Exception {
         underTest = Success.of(SUCCESS);
@@ -134,7 +140,7 @@ public class SuccessTest {
         Try<String> result = underTest.map(mapFunction);
 
         assertThat(result).isInstanceOf(Failure.class);
-        assertThat(result.getException().get()).isEqualTo(EXCEPTION);
+        assertThat(result.getException()).isEqualTo(Optional.of(EXCEPTION));
 
         verify(mapFunction, times(1)).apply(SUCCESS);
     }
@@ -170,7 +176,7 @@ public class SuccessTest {
         Try<String> result = underTest.flatMap(flatMapFunction);
 
         assertThat(result).isInstanceOf(Failure.class);
-        assertThat(result.getException().get()).isEqualTo(EXCEPTION);
+        assertThat(result.getException()).isEqualTo(Optional.of(EXCEPTION));
 
         verify(flatMapFunction, times(1)).apply(SUCCESS);
     }
@@ -207,7 +213,7 @@ public class SuccessTest {
         Try<String> result = underTest.combineMap(other, combineMapFunction);
 
         assertThat(result).isInstanceOf(Failure.class);
-        assertThat(result.getException().get()).isEqualTo(EXCEPTION);
+        assertThat(result.getException()).isEqualTo(Optional.of(EXCEPTION));
 
         verify(combineMapFunction, times(1)).apply(SUCCESS, OTHER);
     }
@@ -244,7 +250,7 @@ public class SuccessTest {
         Try<String> result = underTest.combineFlatMap(other, combineFlatMapFunction);
 
         assertThat(result).isInstanceOf(Failure.class);
-        assertThat(result.getException().get()).isEqualTo(EXCEPTION);
+        assertThat(result.getException()).isEqualTo(Optional.of(EXCEPTION));
 
         verify(combineFlatMapFunction, times(1)).apply(SUCCESS, OTHER);
     }
@@ -257,7 +263,7 @@ public class SuccessTest {
         Try<String> result = underTest.combineFlatMap(other, combineFlatMapFunction);
 
         assertThat(result).isInstanceOf(Failure.class);
-        assertThat(result.getException().get()).isEqualTo(EXCEPTION);
+        assertThat(result.getException()).isEqualTo(Optional.of(EXCEPTION));
 
         verify(combineFlatMapFunction, times(1)).apply(SUCCESS, OTHER);
     }
@@ -292,7 +298,7 @@ public class SuccessTest {
         Try<String> result = underTest.filter(predicate);
 
         assertThat(result).isInstanceOf(Failure.class);
-        assertThat(result.getException().get()).isEqualTo(EXCEPTION);
+        assertThat(result.getException()).isEqualTo(Optional.of(EXCEPTION));
 
         verify(predicate, times(1)).test(SUCCESS);
 
@@ -332,6 +338,32 @@ public class SuccessTest {
         assertThat(result).isEqualTo(underTest);
 
         verify(recoverWithFunction, never()).apply(any());
+    }
+
+    @Test
+    public void testFold() throws Exception {
+        doReturn(OTHER).when(mapFunction).apply(SUCCESS);
+
+        Try<String> result = underTest.fold(recoverFunction, mapFunction);
+
+        assertThat(result).isInstanceOf(Success.class);
+        assertThat(result.get()).isEqualTo(OTHER);
+
+        verify(mapFunction, times(1)).apply(SUCCESS);
+        verify(recoverFunction, never()).apply(any());
+    }
+
+    @Test
+    public void testFoldThrows() throws Exception {
+        doThrow(EXCEPTION).when(mapFunction).apply(SUCCESS);
+
+        Try<String> result = underTest.fold(recoverFunction, mapFunction);
+
+        assertThat(result).isInstanceOf(Failure.class);
+        assertThat(result.getException()).isEqualTo(Optional.of(EXCEPTION));
+
+        verify(mapFunction, times(1)).apply(SUCCESS);
+        verify(recoverFunction, never()).apply(any());
     }
 
     @Test
@@ -393,21 +425,22 @@ public class SuccessTest {
 
     @Test
     public void testMatchSpecificSuccessMismatch() throws Exception {
-        expectedException.expect(UnmatchedPatternException.class);
-        expectedException.expect(hasProperty("actualValue", equalTo(underTest)));
-
         underTest.match(m -> m
                 .success(OTHER, mapFunction)
+                .orElseSuccess(OTHER)
         );
+
+        verify(mapFunction, never()).apply(any());
     }
 
     @Test
     public void testMatchSpecificSuccessNullMismatch() throws Exception {
-        expectedException.expect(UnmatchedPatternException.class);
-
         underTest.match(m -> m
                 .success(null, mapFunction)
+                .orElseSuccess(OTHER)
         );
+
+        verify(mapFunction, never()).apply(any());
     }
 
     @Test
@@ -427,13 +460,16 @@ public class SuccessTest {
 
     @Test
     public void testMatchSuccessWhenDoesNotMatch() throws Exception {
-        expectedException.expect(UnmatchedPatternException.class);
-
         doReturn(false).when(predicate).test(SUCCESS);
+        doReturn(OTHER).when(mapFunction).apply(SUCCESS);
 
-        Try<String> result = underTest.match(m -> m
+        underTest.match(m -> m
                 .successWhen(predicate, mapFunction)
+                .orElseSuccess(OTHER)
         );
+
+        verify(predicate, times(1)).test(SUCCESS);
+        verify(mapFunction, never()).apply(any());
     }
 
     @Test
@@ -470,37 +506,71 @@ public class SuccessTest {
 
     @Test
     public void testMatchFailureDoesNotMatch() throws Exception {
-        expectedException.expect(UnmatchedPatternException.class);
+        underTest.match(m -> m
+                .failure(recoverWithFunction)
+                .orElseSuccess(OTHER)
+        );
 
-        underTest.match(m -> m.failure(recoverWithFunction));
+        verify(recoverWithFunction, never()).apply(any());
     }
 
     @Test
     public void testMatchFailureSpecificExceptionDoesNotMatch() throws Exception {
-        expectedException.expect(UnmatchedPatternException.class);
+        underTest.match(m -> m
+                .failure(Exception.class, recoverWithFunction)
+                .orElseSuccess(OTHER)
+        );
 
-        underTest.match(m -> m.failure(Exception.class, recoverWithFunction));
+        verify(recoverWithFunction, never()).apply(any());
     }
 
     @Test
-    public void testMatchOrElseDoesNotMatch() throws Exception {
-        expectedException.expect(UnmatchedPatternException.class);
+    public void testMatchFailureWhenDoesNotMatch() throws Exception {
+        underTest.match(m -> m
+                .failureWhen(failurePredicate, recoverFunction)
+                .orElseSuccess(OTHER)
+        );
 
-        underTest.match(m -> m.orElse(() -> SUCCESS));
+        verify(failurePredicate, never()).test(any());
+        verify(recoverFunction, never()).apply(any());
     }
 
     @Test
-    public void testMatchOrElseSuccessDoesNotMatch() throws Exception {
-        expectedException.expect(UnmatchedPatternException.class);
+    public void testMatchOrElse() throws Exception {
+        doReturn(SUCCESS).when(supplier).get();
 
-        underTest.match(m -> m.orElseSuccess(SUCCESS));
+        Try<String> result = underTest.match(m -> m.orElse(supplier));
+
+        assertThat(result).isInstanceOf(Success.class);
+        assertThat(result.get()).isEqualTo(SUCCESS);
+
+        verify(supplier, times(1)).get();
+    }
+
+    @Test
+    public void testMatchOrElseSuccess() throws Exception {
+        Try<String> result = underTest.match(m -> m.orElseSuccess(SUCCESS));
+
+        assertThat(result).isInstanceOf(Success.class);
+        assertThat(result.get()).isEqualTo(SUCCESS);
     }
 
     @Test
     public void testMatchOrElseFailureDoesNotMatch() throws Exception {
-        expectedException.expect(UnmatchedPatternException.class);
+        Try<String> result = underTest.match(m -> m
+                .orElseFailure(EXCEPTION)
+        );
 
-        underTest.match(m -> m.orElseFailure(EXCEPTION));
+        assertThat(result).isInstanceOf(Failure.class);
+        assertThat(result.getException()).isEqualTo(Optional.of(EXCEPTION));
+    }
+
+    @Test
+    public void testMatchNoMatchingPatterns() {
+        expectedException.expect(UnmatchedPatternException.class);
+        expectedException.expect(hasProperty("actualValue", equalTo(underTest)));
+
+        underTest.match(m -> m.failure(recoverFunction));
     }
 
     @Test

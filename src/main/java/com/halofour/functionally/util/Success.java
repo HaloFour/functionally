@@ -78,12 +78,12 @@ public final class Success<T> implements Try<T>, Serializable {
     }
 
     @Override
-    public <T2, R> Try<R> combineMap(Try<T2> other, TryBiFunction<? super T, ? super T2, ? extends R> function) {
+    public <U, R> Try<R> combineMap(Try<U> other, TryBiFunction<? super T, ? super U, ? extends R> function) {
         return other.map(otherValue -> function.apply(value, otherValue));
     }
 
     @Override
-    public <T2, R> Try<R> combineFlatMap(Try<T2> other, TryBiFunction<? super T, ? super T2, Try<R>> function) {
+    public <U, R> Try<R> combineFlatMap(Try<U> other, TryBiFunction<? super T, ? super U, Try<R>> function) {
         return other.flatMap(otherValue -> function.apply(value, otherValue));
     }
 
@@ -100,7 +100,7 @@ public final class Success<T> implements Try<T>, Serializable {
     }
 
     @Override
-    public Success<T> recover(TryFunction<Exception, ? extends T> function) {
+    public Success<T> recover(TryFunction<? super Exception, ? extends T> function) {
         return this;
     }
 
@@ -110,7 +110,7 @@ public final class Success<T> implements Try<T>, Serializable {
     }
 
     @Override
-    public Success<T> recoverWith(TryFunction<Exception, Try<T>> function) {
+    public Success<T> recoverWith(TryFunction<? super Exception, Try<T>> function) {
         return this;
     }
 
@@ -120,7 +120,7 @@ public final class Success<T> implements Try<T>, Serializable {
     }
 
     @Override
-    public <R> Try<R> fold(TryFunction<Exception, R> onFailure, TryFunction<T, R> onSuccess) {
+    public <R> Try<R> fold(TryFunction<? super Exception, ? extends R> onFailure, TryFunction<? super T, ? extends R> onSuccess) {
         return map(onSuccess);
     }
 
@@ -216,7 +216,28 @@ public final class Success<T> implements Try<T>, Serializable {
             if (result == null && predicate.test(success.value)) {
                 result = success.map(function);
             }
-            return null;
+            return this;
+        }
+
+        @Override
+        public void orElse(TrySupplier<? extends R> supplier) {
+            if (result == null) {
+                result = Try.from(supplier);
+            }
+        }
+
+        @Override
+        public void orElseSuccess(R defaultValue) {
+            if (result == null) {
+                result = Success.of(defaultValue);
+            }
+        }
+
+        @Override
+        public void orElseFailure(Exception exception) {
+            if (result == null) {
+                result = Failure.of(exception);
+            }
         }
 
         private boolean equals(T left, T right) {

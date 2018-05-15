@@ -58,20 +58,30 @@ public interface TryMatcher<T, R> {
     }
 
     /**
+     * Matches on a failed computation of an exception satisfying the {@code predicate}
+     * @param predicate the predicate to match against the exception
+     * @param function the function to apply to the exception
+     * @return the translated value
+     */
+    default TryMatcher<T, R> failureWhen(Predicate<? super Exception> predicate, TryFunction<? super Exception, ? extends R> function) {
+        return this;
+    }
+
+    /**
      * Matches on a failed computation and returns the supplied value
      * @param supplier the supplier of the value
      */
-    default void orElse(TrySupplier<? extends R> supplier) { }
+    void orElse(TrySupplier<? extends R> supplier);
 
     /**
      * Matches on a failed computation and returns the {@code defaultValue}
      * @param defaultValue the default value
      */
-    default void orElseSuccess(R defaultValue) { }
+    void orElseSuccess(R defaultValue);
 
     /**
      * Matches on a failed computation with another failed computation
      * @param exception the exception of the failed computation
      */
-    default void orElseFailure(Exception exception) { }
+    void orElseFailure(Exception exception);
 }

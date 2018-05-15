@@ -13,6 +13,7 @@ import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.hamcrest.CoreMatchers.is;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.doReturn;
@@ -67,6 +68,9 @@ public class FailureTest {
 
     @Mock
     private TrySupplier<String> supplier;
+
+    @Mock
+    private Predicate<Exception> failurePredicate;
 
     @Before
     public void setUp() throws Exception {
@@ -196,7 +200,7 @@ public class FailureTest {
         Try<String> result = underTest.recover(recoverFunction);
 
         assertThat(result).isInstanceOf(Failure.class);
-        assertThat(result.getException().get()).isEqualTo(OTHER_EXCEPTION);
+        assertThat(result.getException()).isEqualTo(Optional.of(OTHER_EXCEPTION));
 
         verify(recoverFunction, times(1)).apply(EXCEPTION);
     }
@@ -220,7 +224,7 @@ public class FailureTest {
         Try<String> result = underTest.recover(IllegalArgumentException.class, recoverFunction);
 
         assertThat(result).isInstanceOf(Failure.class);
-        assertThat(result.getException().get()).isEqualTo(OTHER_EXCEPTION);
+        assertThat(result.getException()).isEqualTo(Optional.of(OTHER_EXCEPTION));
 
         verify(recoverFunction, times(1)).apply(EXCEPTION);
     }
@@ -279,7 +283,7 @@ public class FailureTest {
         Try<String> result = underTest.recoverWith(recoverWithFunction);
 
         assertThat(result).isInstanceOf(Failure.class);
-        assertThat(result.getException().get()).isEqualTo(OTHER_EXCEPTION);
+        assertThat(result.getException()).isEqualTo(Optional.of(OTHER_EXCEPTION));
 
         verify(recoverWithFunction, times(1)).apply(EXCEPTION);
     }
@@ -304,7 +308,7 @@ public class FailureTest {
         Try<String> result = underTest.recoverWith(IllegalArgumentException.class, recoverWithFunction);
 
         assertThat(result).isInstanceOf(Failure.class);
-        assertThat(result.getException().get()).isEqualTo(OTHER_EXCEPTION);
+        assertThat(result.getException()).isEqualTo(Optional.of(OTHER_EXCEPTION));
 
         verify(recoverWithFunction, times(1)).apply(EXCEPTION);
     }
@@ -328,6 +332,32 @@ public class FailureTest {
         assertThat(result).isEqualTo(underTest);
 
         verify(recoverWithFunction, never()).apply(any());
+    }
+
+    @Test
+    public void testFold() throws Exception {
+        doReturn(OTHER).when(recoverFunction).apply(EXCEPTION);
+
+        Try<String> result = underTest.fold(recoverFunction, mapFunction);
+
+        assertThat(result).isInstanceOf(Success.class);
+        assertThat(result.get()).isEqualTo(OTHER);
+
+        verify(mapFunction, never()).apply(any());
+        verify(recoverFunction, times(1)).apply(EXCEPTION);
+    }
+
+    @Test
+    public void testFoldThrows() throws Exception {
+        doThrow(OTHER_EXCEPTION).when(recoverFunction).apply(EXCEPTION);
+
+        Try<String> result = underTest.fold(recoverFunction, mapFunction);
+
+        assertThat(result).isInstanceOf(Failure.class);
+        assertThat(result.getException()).isEqualTo(Optional.of(OTHER_EXCEPTION));
+
+        verify(mapFunction, never()).apply(any());
+        verify(recoverFunction, times(1)).apply(EXCEPTION);
     }
 
     @Test
@@ -417,11 +447,12 @@ public class FailureTest {
 
     @Test
     public void testMatchSpecificFailureMismatch() throws Exception {
-        expectedException.expect(UnmatchedPatternException.class);
-
         underTest.match(m -> m
                 .failure(NullPointerException.class, recoverFunction)
+                .orElseSuccess(SUCCESS)
         );
+
+        verify(recoverFunction, never()).apply(any());
     }
 
     @Test
@@ -438,6 +469,33 @@ public class FailureTest {
 
         verify(recoverFunction, never()).apply(any());
         verify(recoverFunction2, times(1)).apply(EXCEPTION);
+    }
+
+    @Test
+    public void testMatchExceptionWhen() throws Exception {
+        doReturn(true).when(failurePredicate).test(EXCEPTION);
+        doReturn(SUCCESS).when(recoverFunction).apply(EXCEPTION);
+
+        Try<String> result = underTest.match(m -> m.failureWhen(failurePredicate, recoverFunction));
+
+        assertThat(result).isInstanceOf(Success.class);
+        assertThat(result.get()).isEqualTo(SUCCESS);
+
+        verify(failurePredicate, times(1)).test(EXCEPTION);
+        verify(recoverFunction, times(1)).apply(EXCEPTION);
+    }
+
+    @Test
+    public void testMatchExceptionWhenDoesNotMatch() throws Exception {
+        doReturn(false).when(failurePredicate).test(EXCEPTION);
+
+        underTest.match(m -> m
+                .failureWhen(failurePredicate, recoverFunction)
+                .orElseSuccess(SUCCESS)
+        );
+
+        verify(failurePredicate, times(1)).test(EXCEPTION);
+        verify(recoverFunction, never()).apply(EXCEPTION);
     }
 
     @Test
@@ -466,43 +524,45 @@ public class FailureTest {
 
     @Test
     public void testMatchOrElseFailure() throws Exception {
-        expectedException.expect(is(OTHER_EXCEPTION));
-
         Try<String> result = underTest.match(m -> m
                 .orElseFailure(OTHER_EXCEPTION)
         );
 
         assertThat(result).isInstanceOf(Failure.class);
-        result.get();
+        assertThat(result.getException()).isEqualTo(Optional.of(OTHER_EXCEPTION));
     }
 
     @Test
-    public void testMatchSuccess() {
-        expectedException.expect(UnmatchedPatternException.class);
-
+    public void testMatchSuccess() throws Exception{
         underTest.match(m -> m
                 .success(mapFunction)
+                .orElseSuccess(SUCCESS)
         );
+
+        verify(mapFunction, never()).apply(any());
     }
 
     @Test
-    public void testMatchSuccessValue() {
-        expectedException.expect(UnmatchedPatternException.class);
-
+    public void testMatchSuccessValue() throws Exception {
         underTest.match(m -> m
                 .success(SUCCESS, mapFunction)
+                .orElseSuccess(SUCCESS)
         );
+
+        verify(mapFunction, never()).apply(any());
     }
 
     @Test
-    public void testMatchSuccessWhen() {
-        expectedException.expect(UnmatchedPatternException.class);
-
+    public void testMatchSuccessWhen() throws Exception {
         doReturn(true).when(predicate).test(SUCCESS);
 
         underTest.match(m -> m
                 .successWhen(predicate, mapFunction)
+                .orElseSuccess(SUCCESS)
         );
+
+        verify(predicate, never()).test(any());
+        verify(mapFunction, never()).apply(any());
     }
 
     @Test

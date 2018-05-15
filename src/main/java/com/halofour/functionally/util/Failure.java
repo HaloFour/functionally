@@ -72,13 +72,13 @@ public final class Failure<T> implements Try<T> {
 
     @Override
     @SuppressWarnings("unchecked")
-    public <T2, R> Try<R> combineMap(Try<T2> other, TryBiFunction<? super T, ? super T2, ? extends R> function) {
+    public <U, R> Try<R> combineMap(Try<U> other, TryBiFunction<? super T, ? super U, ? extends R> function) {
         return (Failure<R>) this;
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public <T2, R> Try<R> combineFlatMap(Try<T2> other, TryBiFunction<? super T, ? super T2, Try<R>> function) {
+    public <U, R> Try<R> combineFlatMap(Try<U> other, TryBiFunction<? super T, ? super U, Try<R>> function) {
         return (Failure<R>) this;
     }
 
@@ -88,7 +88,7 @@ public final class Failure<T> implements Try<T> {
     }
 
     @Override
-    public Try<T> recover(TryFunction<Exception, ? extends T> function) {
+    public Try<T> recover(TryFunction<? super Exception, ? extends T> function) {
         return recover(Exception.class, function);
     }
 
@@ -105,7 +105,7 @@ public final class Failure<T> implements Try<T> {
     }
 
     @Override
-    public Try<T> recoverWith(TryFunction<Exception, Try<T>> function) {
+    public Try<T> recoverWith(TryFunction<? super Exception, Try<T>> function) {
         return recoverWith(Exception.class, function);
     }
 
@@ -122,7 +122,7 @@ public final class Failure<T> implements Try<T> {
     }
 
     @Override
-    public <R> Try<R> fold(TryFunction<Exception, R> onFailure, TryFunction<T, R> onSuccess) {
+    public <R> Try<R> fold(TryFunction<? super Exception, ? extends R> onFailure, TryFunction<? super T, ? extends R> onSuccess) {
         try {
             return Success.of(onFailure.apply(exception));
         } catch (Exception exception) {
@@ -231,6 +231,14 @@ public final class Failure<T> implements Try<T> {
         public <E extends Exception> TryMatcher<T, R> failure(Class<E> exceptionClass, TryFunction<? super E, ? extends R> function) {
             if (result == null && exceptionClass.isInstance(failure.exception)) {
                 result = failure.recover(exceptionClass, function);
+            }
+            return this;
+        }
+
+        @Override
+        public TryMatcher<T, R> failureWhen(Predicate<? super Exception> predicate, TryFunction<? super Exception, ? extends R> function) {
+            if (result == null && predicate.test(failure.exception)) {
+                result = failure.recover(function);
             }
             return this;
         }

@@ -84,21 +84,21 @@ public interface Try<T> extends Serializable {
      * Maps the values of both computations using the {@code function} if both are successful; otherwise returns the failed computation
      * @param other the other computation
      * @param function the function to compute the value of the returned {@link Try}
-     * @param <T2> the type of the other computation
+     * @param <U> the type of the other computation
      * @param <R> the function's return type
      * @return the computation of the {@code function} applied to the value of both computations
      */
-    <T2, R> Try<R> combineMap(Try<T2> other, TryBiFunction<? super T, ? super T2, ? extends R> function);
+    <U, R> Try<R> combineMap(Try<U> other, TryBiFunction<? super T, ? super U, ? extends R> function);
 
     /**
      * Maps the value of both computations to the return value of {@code function} if both are successful; otherwise returns the failed computation
      * @param other the other computation
      * @param function the function to compute the returned {@link Try}
-     * @param <T2> the type of the other computation
+     * @param <U> the type of the other computation
      * @param <R> the function's return type
      * @return the return value from {@code function}
      */
-    <T2, R> Try<R> combineFlatMap(Try<T2> other, TryBiFunction<? super T, ? super T2, Try<R>> function);
+    <U, R> Try<R> combineFlatMap(Try<U> other, TryBiFunction<? super T, ? super U, Try<R>> function);
 
     /**
      * Filters the value of this successful operation based on the {@code predicate} returning a {@link Failure}
@@ -113,7 +113,7 @@ public interface Try<T> extends Serializable {
      * @param function the function to apply to the exception of the failed computation
      * @return the computation of the {@code function} applied to the exception of the failed computation
      */
-    Try<T> recover(TryFunction<Exception, ? extends T> function);
+    Try<T> recover(TryFunction<? super Exception, ? extends T> function);
 
     /**
      * Applies the given {@code function} to the computation if it has failed with the specified exception class; otherwise, returns {@code this}
@@ -129,7 +129,7 @@ public interface Try<T> extends Serializable {
      * @param function the function to apply to the exception of the failed computation
      * @return the return value of {@code function}
      */
-    Try<T> recoverWith(TryFunction<Exception, Try<T>> function);
+    Try<T> recoverWith(TryFunction<? super Exception, Try<T>> function);
 
     /**
      * Applies the return value of {@code function} to the computation if it has failed with the specified exception class; otherwise, returns {@code this}
@@ -141,13 +141,13 @@ public interface Try<T> extends Serializable {
     <E extends Exception> Try<T> recoverWith(Class<E> exceptionClass, TryFunction<? super E, Try<T>> function);
 
     /**
-     *
-     * @param onFailure
-     * @param onSuccess
-     * @param <R>
-     * @return
+     * Applies the function {@code onSuccess} if the computation was successful; otherwise, applies the function {@code onFailure}
+     * @param onFailure the function to apply to the exception of the failed computation
+     * @param onSuccess the function to apply to the result of the successful computation
+     * @param <R> the return type of the functions
+     * @return the results of applying either {@code onSuccess} or {@code onFailure}
      */
-    <R> Try<R> fold(TryFunction<Exception, R> onFailure, TryFunction<T, R> onSuccess);
+    <R> Try<R> fold(TryFunction<? super Exception, ? extends R> onFailure, TryFunction<? super T, ? extends R> onSuccess);
 
     /**
      * Inverts the failed computation to the successful computation of the exception
