@@ -199,16 +199,45 @@ public final class Failure<T> implements Try<T> {
      */
     public static <T> Failure<T> of(Throwable exception) {
         Objects.requireNonNull(exception, "exception must not be null.");
-        if (exception instanceof VirtualMachineError) {
-            throw (VirtualMachineError) exception;
-        } else if (exception instanceof ThreadDeath) {
-            throw (ThreadDeath) exception;
-        } else if (exception instanceof LinkageError) {
-            throw (LinkageError) exception;
-        } else if (exception instanceof InterruptedException) {
-            throw new RuntimeException(exception);
+        if (isFatal(exception)) {
+            rethrow(exception);
         }
         return new Failure<>(exception);
+    }
+
+    /**
+     * Evaluates if a given exception is non-fatal and can be wrapped by a {@link Failure}
+     * @param exception the exception
+     * @return {@code true} if the exception is non-fatal; otherwise, {@code false}
+     */
+    public static boolean isNonFatal(Throwable exception) {
+        return !isFatal(exception);
+    }
+
+    /**
+     * Evaluates if a given exception is fatal and cannot be wrapped by a {@link Failure}
+     * @param exception the exception
+     * @return {@code true} if the exception is fatal; otherwise, {@code false}
+     */
+    public static boolean isFatal(Throwable exception) {
+        return exception instanceof VirtualMachineError ||
+                exception instanceof ThreadDeath ||
+                exception instanceof LinkageError ||
+                exception instanceof InterruptedException;
+    }
+
+    /**
+     * Rethrows the given exception, wrapping it in a {@link RuntimeException} if necessary
+     * @param exception the exception to rethrow
+     */
+    public static void rethrow(Throwable exception) {
+        if (exception instanceof RuntimeException) {
+            throw (RuntimeException) exception;
+        } else if (exception instanceof Error) {
+            throw (Error) exception;
+        } else {
+            throw new RuntimeException(exception);
+        }
     }
 
     /**

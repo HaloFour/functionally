@@ -16,9 +16,8 @@ import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.isA;
+import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
@@ -94,32 +93,51 @@ public class FailureTest {
     }
 
     @Test
-    public void testFatalVirtualMachineError() {
+    public void testFatalException() {
         expectedException.expect(OutOfMemoryError.class);
 
-        Failure.of(new OutOfMemoryError());
+        Throwable exception = new OutOfMemoryError();
+        assertThat(Failure.isFatal(exception)).isTrue();
+        assertThat(Failure.isNonFatal(exception)).isFalse();
+
+        Failure.of(exception);
     }
 
     @Test
-    public void testFatalThreadDeath() {
-        expectedException.expect(ThreadDeath.class);
+    public void testNonFatalException() {
+        Throwable exception = new IllegalArgumentException();
+        assertThat(Failure.isFatal(exception)).isFalse();
+        assertThat(Failure.isNonFatal(exception)).isTrue();
 
-        Failure.of(new ThreadDeath());
+        assertThat(Failure.of(exception)).isInstanceOf(Failure.class);
     }
 
     @Test
-    public void testFatalLinkageError() {
-        expectedException.expect(LinkageError.class);
+    public void testRethrowCheckedException() {
+        Throwable exception = new InterruptedException();
 
-        Failure.of(new LinkageError());
-    }
-
-    @Test
-    public void testFatalInterruptedException() {
         expectedException.expect(RuntimeException.class);
-        expectedException.expectCause(isA(InterruptedException.class));
+        expectedException.expectCause(sameInstance(exception));
 
-        Failure.of(new InterruptedException());
+        Failure.rethrow(exception);
+    }
+
+    @Test
+    public void testRethrowRuntimeException() {
+        Throwable exception = new RuntimeException();
+
+        expectedException.expect(sameInstance(exception));
+
+        Failure.rethrow(exception);
+    }
+
+    @Test
+    public void testRethrowError() {
+        Throwable exception = new OutOfMemoryError();
+
+        expectedException.expect(sameInstance(exception));
+
+        Failure.rethrow(exception);
     }
 
     @Test
