@@ -1,4 +1,4 @@
-package com.halofour.functionally.util;
+package com.halofour.functionally.util.function;
 
 /**
  * Represents a supplier of results that can fail with an exception.
@@ -9,7 +9,7 @@ public interface TrySupplier<T> {
     /**
      * Gets a result.
      * @return the result
-     * @throws Exception an exception
+     * @throws Throwable an exception
      */
-    T get() throws Exception;
+    T get() throws Throwable;
 }

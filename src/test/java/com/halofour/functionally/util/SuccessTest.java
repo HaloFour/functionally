@@ -1,5 +1,8 @@
 package com.halofour.functionally.util;
 
+import com.halofour.functionally.util.function.TryBiFunction;
+import com.halofour.functionally.util.function.TryFunction;
+import com.halofour.functionally.util.function.TrySupplier;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -55,25 +58,25 @@ public class SuccessTest {
     private Predicate<String> predicate;
 
     @Mock
-    private TryFunction<Exception, String> recoverFunction;
+    private TryFunction<Throwable, String> recoverFunction;
 
     @Mock
-    private TryFunction<Exception, Try<String>> recoverWithFunction;
+    private TryFunction<Throwable, Try<String>> recoverWithFunction;
 
     @Mock
     private Consumer<String> ifSuccessConsumer;
 
     @Mock
-    private Consumer<Exception> ifFailureConsumer;
+    private Consumer<Throwable> ifFailureConsumer;
 
     @Mock
-    private Predicate<Exception> failurePredicate;
+    private Predicate<Throwable> failurePredicate;
 
     @Mock
     private TrySupplier<String> supplier;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() throws Throwable {
         underTest = Success.of(SUCCESS);
     }
 
@@ -93,13 +96,13 @@ public class SuccessTest {
     }
 
     @Test
-    public void testGet() throws Exception {
+    public void testGet() throws Throwable {
         assertThat(underTest.get()).isEqualTo(SUCCESS);
     }
 
     @Test
     public void testGetException() {
-        Optional<Exception> result = underTest.getException();
+        Optional<Throwable> result = underTest.getException();
         assertThat(result.isPresent()).isFalse();
     }
 
@@ -122,7 +125,7 @@ public class SuccessTest {
     }
 
     @Test
-    public void testMap() throws Exception {
+    public void testMap() throws Throwable {
         doReturn(OTHER).when(mapFunction).apply(SUCCESS);
 
         Try<String> result = underTest.map(mapFunction);
@@ -134,7 +137,7 @@ public class SuccessTest {
     }
 
     @Test
-    public void testMapThrows() throws Exception {
+    public void testMapThrows() throws Throwable {
         doThrow(EXCEPTION).when(mapFunction).apply(SUCCESS);
 
         Try<String> result = underTest.map(mapFunction);
@@ -146,7 +149,7 @@ public class SuccessTest {
     }
 
     @Test
-    public void testFlatMap() throws Exception {
+    public void testFlatMap() throws Throwable {
         Success<String> expected = Success.of(SUCCESS);
         doReturn(expected).when(flatMapFunction).apply(SUCCESS);
 
@@ -158,7 +161,7 @@ public class SuccessTest {
     }
 
     @Test
-    public void testFlatMapFailure() throws Exception {
+    public void testFlatMapFailure() throws Throwable {
         Try<String> expected = Failure.of(EXCEPTION);
         doReturn(expected).when(flatMapFunction).apply(SUCCESS);
 
@@ -170,7 +173,7 @@ public class SuccessTest {
     }
 
     @Test
-    public void testFlatMapThrows() throws Exception {
+    public void testFlatMapThrows() throws Throwable {
         doThrow(EXCEPTION).when(flatMapFunction).apply(SUCCESS);
 
         Try<String> result = underTest.flatMap(flatMapFunction);
@@ -182,7 +185,7 @@ public class SuccessTest {
     }
 
     @Test
-    public void testCombineMap() throws Exception {
+    public void testCombineMap() throws Throwable {
         doReturn(COMBINED).when(combineMapFunction).apply(SUCCESS, OTHER);
 
         Try<String> other = Success.of(OTHER);
@@ -195,7 +198,7 @@ public class SuccessTest {
     }
 
     @Test
-    public void testCombineMapOtherFailure() throws Exception {
+    public void testCombineMapOtherFailure() throws Throwable {
         Try<String> other = Failure.of(EXCEPTION);
         Try<String> result = underTest.combineMap(other, combineMapFunction);
 
@@ -206,7 +209,7 @@ public class SuccessTest {
     }
 
     @Test
-    public void testCombineMapThrows() throws Exception {
+    public void testCombineMapThrows() throws Throwable {
         doThrow(EXCEPTION).when(combineMapFunction).apply(SUCCESS, OTHER);
 
         Try<String> other = Success.of(OTHER);
@@ -219,7 +222,7 @@ public class SuccessTest {
     }
 
     @Test
-    public void testCombineFlatMap() throws Exception {
+    public void testCombineFlatMap() throws Throwable {
         doReturn(Success.of(COMBINED)).when(combineFlatMapFunction).apply(SUCCESS, OTHER);
 
         Try<String> other = Success.of(OTHER);
@@ -232,7 +235,7 @@ public class SuccessTest {
     }
 
     @Test
-    public void testCombineFlatMapOtherFailure() throws Exception {
+    public void testCombineFlatMapOtherFailure() throws Throwable {
         Try<String> other = Failure.of(EXCEPTION);
         Try<String> result = underTest.combineFlatMap(other, combineFlatMapFunction);
 
@@ -243,7 +246,7 @@ public class SuccessTest {
     }
 
     @Test
-    public void testCombineFlatMapReturnsFailure() throws Exception {
+    public void testCombineFlatMapReturnsFailure() throws Throwable {
         doReturn(Failure.of(EXCEPTION)).when(combineFlatMapFunction).apply(SUCCESS, OTHER);
 
         Try<String> other = Success.of(OTHER);
@@ -256,7 +259,7 @@ public class SuccessTest {
     }
 
     @Test
-    public void testCombineFlatMapThrows() throws Exception {
+    public void testCombineFlatMapThrows() throws Throwable {
         doThrow(EXCEPTION).when(combineFlatMapFunction).apply(SUCCESS, OTHER);
 
         Try<String> other = Success.of(OTHER);
@@ -305,7 +308,7 @@ public class SuccessTest {
     }
 
     @Test
-    public void testRecoverReturnsSelf() throws Exception {
+    public void testRecoverReturnsSelf() throws Throwable {
         Try<String> result = underTest.recover(recoverFunction);
 
         assertThat(result).isEqualTo(underTest);
@@ -314,7 +317,7 @@ public class SuccessTest {
     }
 
     @Test
-    public void testRecoverSpecificExceptionReturnsSelf() throws Exception {
+    public void testRecoverSpecificExceptionReturnsSelf() throws Throwable {
         Try<String> result = underTest.recover(Exception.class, recoverFunction);
 
         assertThat(result).isEqualTo(underTest);
@@ -323,7 +326,7 @@ public class SuccessTest {
     }
 
     @Test
-    public void testRecoverWithReturnsSelf() throws Exception {
+    public void testRecoverWithReturnsSelf() throws Throwable {
         Try<String> result = underTest.recoverWith(recoverWithFunction);
 
         assertThat(result).isEqualTo(underTest);
@@ -332,7 +335,7 @@ public class SuccessTest {
     }
 
     @Test
-    public void testRecoverWithSpecificExceptionReturnsSelf() throws Exception {
+    public void testRecoverWithSpecificExceptionReturnsSelf() throws Throwable {
         Try<String> result = underTest.recoverWith(Exception.class, recoverWithFunction);
 
         assertThat(result).isEqualTo(underTest);
@@ -341,7 +344,7 @@ public class SuccessTest {
     }
 
     @Test
-    public void testFold() throws Exception {
+    public void testFold() throws Throwable {
         doReturn(OTHER).when(mapFunction).apply(SUCCESS);
 
         Try<String> result = underTest.fold(recoverFunction, mapFunction);
@@ -354,7 +357,7 @@ public class SuccessTest {
     }
 
     @Test
-    public void testFoldThrows() throws Exception {
+    public void testFoldThrows() throws Throwable {
         doThrow(EXCEPTION).when(mapFunction).apply(SUCCESS);
 
         Try<String> result = underTest.fold(recoverFunction, mapFunction);
@@ -368,7 +371,7 @@ public class SuccessTest {
 
     @Test
     public void testFailed() {
-        Try<Exception> inverted = underTest.failed();
+        Try<Throwable> inverted = underTest.failed();
 
         assertThat(inverted).isInstanceOf(Failure.class);
         assertThat(inverted.getException().get()).isInstanceOf(UnsupportedOperationException.class);
@@ -396,7 +399,7 @@ public class SuccessTest {
     }
 
     @Test
-    public void testMatchAnySuccess() throws Exception {
+    public void testMatchAnySuccess() throws Throwable {
         doReturn(OTHER).when(mapFunction).apply(SUCCESS);
 
         Try<String> result = underTest.match(m -> m
@@ -410,7 +413,7 @@ public class SuccessTest {
     }
 
     @Test
-    public void testMatchSpecificSuccess() throws Exception {
+    public void testMatchSpecificSuccess() throws Throwable {
         doReturn(OTHER).when(mapFunction).apply(SUCCESS);
 
         Try<String> result = underTest.match(m -> m
@@ -424,7 +427,7 @@ public class SuccessTest {
     }
 
     @Test
-    public void testMatchSpecificSuccessMismatch() throws Exception {
+    public void testMatchSpecificSuccessMismatch() throws Throwable {
         underTest.match(m -> m
                 .success(OTHER, mapFunction)
                 .orElseSuccess(OTHER)
@@ -434,7 +437,7 @@ public class SuccessTest {
     }
 
     @Test
-    public void testMatchSpecificSuccessNullMismatch() throws Exception {
+    public void testMatchSpecificSuccessNullMismatch() throws Throwable {
         underTest.match(m -> m
                 .success(null, mapFunction)
                 .orElseSuccess(OTHER)
@@ -444,7 +447,7 @@ public class SuccessTest {
     }
 
     @Test
-    public void testMatchSuccessWhen() throws Exception {
+    public void testMatchSuccessWhen() throws Throwable {
         doReturn(true).when(predicate).test(SUCCESS);
         doReturn(OTHER).when(mapFunction).apply(SUCCESS);
 
@@ -459,7 +462,7 @@ public class SuccessTest {
     }
 
     @Test
-    public void testMatchSuccessWhenDoesNotMatch() throws Exception {
+    public void testMatchSuccessWhenDoesNotMatch() throws Throwable {
         doReturn(false).when(predicate).test(SUCCESS);
         doReturn(OTHER).when(mapFunction).apply(SUCCESS);
 
@@ -473,7 +476,7 @@ public class SuccessTest {
     }
 
     @Test
-    public void testMatchSpecificSuccessMismatchFallthrough() throws Exception {
+    public void testMatchSpecificSuccessMismatchFallthrough() throws Throwable {
         doReturn(OTHER).when(mapFunction2).apply(SUCCESS);
 
         Try<String> result = underTest.match(m -> m
@@ -489,7 +492,7 @@ public class SuccessTest {
     }
 
     @Test
-    public void testMatchSpecificSuccessOrdered() throws Exception {
+    public void testMatchSpecificSuccessOrdered() throws Throwable {
         doReturn(OTHER).when(mapFunction).apply(SUCCESS);
 
         Try<String> result = underTest.match(m -> m
@@ -505,7 +508,7 @@ public class SuccessTest {
     }
 
     @Test
-    public void testMatchFailureDoesNotMatch() throws Exception {
+    public void testMatchFailureDoesNotMatch() throws Throwable {
         underTest.match(m -> m
                 .failure(recoverWithFunction)
                 .orElseSuccess(OTHER)
@@ -515,7 +518,7 @@ public class SuccessTest {
     }
 
     @Test
-    public void testMatchFailureSpecificExceptionDoesNotMatch() throws Exception {
+    public void testMatchFailureSpecificExceptionDoesNotMatch() throws Throwable {
         underTest.match(m -> m
                 .failure(Exception.class, recoverWithFunction)
                 .orElseSuccess(OTHER)
@@ -525,7 +528,7 @@ public class SuccessTest {
     }
 
     @Test
-    public void testMatchFailureWhenDoesNotMatch() throws Exception {
+    public void testMatchFailureWhenDoesNotMatch() throws Throwable {
         underTest.match(m -> m
                 .failureWhen(failurePredicate, recoverFunction)
                 .orElseSuccess(OTHER)
@@ -536,7 +539,7 @@ public class SuccessTest {
     }
 
     @Test
-    public void testMatchOrElse() throws Exception {
+    public void testMatchOrElse() throws Throwable {
         doReturn(SUCCESS).when(supplier).get();
 
         Try<String> result = underTest.match(m -> m.orElse(supplier));
@@ -548,7 +551,7 @@ public class SuccessTest {
     }
 
     @Test
-    public void testMatchOrElseSuccess() throws Exception {
+    public void testMatchOrElseSuccess() throws Throwable {
         Try<String> result = underTest.match(m -> m.orElseSuccess(SUCCESS));
 
         assertThat(result).isInstanceOf(Success.class);
@@ -556,7 +559,7 @@ public class SuccessTest {
     }
 
     @Test
-    public void testMatchOrElseFailureDoesNotMatch() throws Exception {
+    public void testMatchOrElseFailureDoesNotMatch() throws Throwable {
         Try<String> result = underTest.match(m -> m
                 .orElseFailure(EXCEPTION)
         );

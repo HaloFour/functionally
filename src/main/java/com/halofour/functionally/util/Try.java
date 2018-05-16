@@ -5,6 +5,10 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
+import com.halofour.functionally.util.function.TryBiFunction;
+import com.halofour.functionally.util.function.TryFunction;
+import com.halofour.functionally.util.function.TrySupplier;
+
 /**
  * The {@link Try} type represents a computation that may either result
  * in an exception, or return a successfully computed value.
@@ -29,20 +33,20 @@ public interface Try<T> extends Serializable {
      * @param exceptionClass the class of the exception
      * @return {@code true} if failed with the specified exception class
      */
-    boolean isFailure(Class<? extends Exception> exceptionClass);
+    boolean isFailure(Class<? extends Throwable> exceptionClass);
 
     /**
      * Returns the value of the computation if successful; otherwise, throws the exception
      * @return the value of the computation
-     * @throws Exception the exception which caused the computation to fail
+     * @throws Throwable the exception which caused the computation to fail
      */
-    T get() throws Exception;
+    T get() throws Throwable;
 
     /**
      * Returns the exception of the computation if it failed; otherwise {@link Optional#empty()}
      * @return the exception of the failed computation
      */
-    Optional<Exception> getException();
+    Optional<Throwable> getException();
 
     /**
      * Returns the value of the computation if successful; otherwise, returns {@code defaultValue}
@@ -113,7 +117,7 @@ public interface Try<T> extends Serializable {
      * @param function the function to apply to the exception of the failed computation
      * @return the computation of the {@code function} applied to the exception of the failed computation
      */
-    Try<T> recover(TryFunction<? super Exception, ? extends T> function);
+    Try<T> recover(TryFunction<? super Throwable, ? extends T> function);
 
     /**
      * Applies the given {@code function} to the computation if it has failed with the specified exception class; otherwise, returns {@code this}
@@ -122,14 +126,14 @@ public interface Try<T> extends Serializable {
      * @param <E> the type of the exception
      * @return the computation of the {@code function} applied to the exception of the failed computation
      */
-    <E extends Exception> Try<T> recover(Class<E> exceptionClass, TryFunction<? super E, ? extends T> function);
+    <E extends Throwable> Try<T> recover(Class<E> exceptionClass, TryFunction<? super E, ? extends T> function);
 
     /**
      * Applies the returm value of {@code function} to the computation if it has failed; otherwise, returns {@code this}
      * @param function the function to apply to the exception of the failed computation
      * @return the return value of {@code function}
      */
-    Try<T> recoverWith(TryFunction<? super Exception, Try<T>> function);
+    Try<T> recoverWith(TryFunction<? super Throwable, Try<T>> function);
 
     /**
      * Applies the return value of {@code function} to the computation if it has failed with the specified exception class; otherwise, returns {@code this}
@@ -138,7 +142,7 @@ public interface Try<T> extends Serializable {
      * @param <E> the type of the exception
      * @return the return value of {@code function}
      */
-    <E extends Exception> Try<T> recoverWith(Class<E> exceptionClass, TryFunction<? super E, Try<T>> function);
+    <E extends Throwable> Try<T> recoverWith(Class<E> exceptionClass, TryFunction<? super E, Try<T>> function);
 
     /**
      * Applies the function {@code onSuccess} if the computation was successful; otherwise, applies the function {@code onFailure}
@@ -147,13 +151,13 @@ public interface Try<T> extends Serializable {
      * @param <R> the return type of the functions
      * @return the results of applying either {@code onSuccess} or {@code onFailure}
      */
-    <R> Try<R> fold(TryFunction<? super Exception, ? extends R> onFailure, TryFunction<? super T, ? extends R> onSuccess);
+    <R> Try<R> fold(TryFunction<? super Throwable, ? extends R> onFailure, TryFunction<? super T, ? extends R> onSuccess);
 
     /**
      * Inverts the failed computation to the successful computation of the exception
      * @return the successful computation
      */
-    Try<Exception> failed();
+    Try<Throwable> failed();
 
     /**
      * Invokes the {@code consumer} with the computed value if the computation is successful.
@@ -165,7 +169,7 @@ public interface Try<T> extends Serializable {
      * Invokes the {@code consumer} with the exception if the computation had failed
      * @param consumer the consumer function
      */
-    void ifFailure(Consumer<? super Exception> consumer);
+    void ifFailure(Consumer<? super Throwable> consumer);
 
     /**
      * Invokes the {@code consumer} with the exception if the computation had failed with the specified exception
@@ -173,7 +177,7 @@ public interface Try<T> extends Serializable {
      * @param consumer the consumer function
      * @param <E> the type of the exception
      */
-    <E extends Exception> void ifFailure(Class<E> exceptionClass, Consumer<? super E> consumer);
+    <E extends Throwable> void ifFailure(Class<E> exceptionClass, Consumer<? super E> consumer);
 
     /**
      * Transforms the computation using the translation function matching the result
@@ -194,23 +198,23 @@ public interface Try<T> extends Serializable {
     }
 
     /**
-     * Returns a {@link Failure} computation for the given {@link Exception}
+     * Returns a {@link Failure} computation for the given {@link Throwable}
      * @param exception the exception
      * @param <T> the type of the value of the computation
      * @return the failed computation
      */
-    static <T> Failure<T> failure(Exception exception) {
+    static <T> Failure<T> failure(Throwable exception) {
         return Failure.of(exception);
     }
 
     /**
-     * Returns a {@link Failure} computation for the given {@link Exception}
+     * Returns a {@link Failure} computation for the given {@link Throwable}
      * @param valueClass the class of the value of the computation, used for generic inference
      * @param exception the exception
      * @param <T> the type of the value of the computation
      * @return the failed computation
      */
-    static <T> Failure<T> failure(Class<T> valueClass, Exception exception) {
+    static <T> Failure<T> failure(Class<T> valueClass, Throwable exception) {
         return Failure.of(valueClass, exception);
     }
 
@@ -223,7 +227,7 @@ public interface Try<T> extends Serializable {
     static <T> Try<T> from(TrySupplier<? extends T> supplier) {
         try {
             return Success.of(supplier.get());
-        } catch (Exception exception) {
+        } catch (Throwable exception) {
             return Failure.of(exception);
         }
     }

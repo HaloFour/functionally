@@ -2,6 +2,9 @@ package com.halofour.functionally.util;
 
 import java.util.function.Predicate;
 
+import com.halofour.functionally.util.function.TryFunction;
+import com.halofour.functionally.util.function.TrySupplier;
+
 /**
  * Configures a matcher to translate the expected results of a computation
  * @param <T> the type of the value of the computation
@@ -42,7 +45,7 @@ public interface TryMatcher<T, R> {
      * @param function the function to apply to the exception
      * @return the translated value
      */
-    default TryMatcher<T, R> failure(TryFunction<Exception, ? extends R> function) {
+    default TryMatcher<T, R> failure(TryFunction<Throwable, ? extends R> function) {
         return this;
     }
 
@@ -53,7 +56,7 @@ public interface TryMatcher<T, R> {
      * @param <E> the type of the exception
      * @return the translated value
      */
-    default <E extends Exception> TryMatcher<T, R> failure(Class<E> exceptionClass, TryFunction<? super E, ? extends R> function) {
+    default <E extends Throwable> TryMatcher<T, R> failure(Class<E> exceptionClass, TryFunction<? super E, ? extends R> function) {
         return this;
     }
 
@@ -63,7 +66,7 @@ public interface TryMatcher<T, R> {
      * @param function the function to apply to the exception
      * @return the translated value
      */
-    default TryMatcher<T, R> failureWhen(Predicate<? super Exception> predicate, TryFunction<? super Exception, ? extends R> function) {
+    default TryMatcher<T, R> failureWhen(Predicate<? super Throwable> predicate, TryFunction<? super Throwable, ? extends R> function) {
         return this;
     }
 
@@ -83,5 +86,5 @@ public interface TryMatcher<T, R> {
      * Matches on a failed computation with another failed computation
      * @param exception the exception of the failed computation
      */
-    void orElseFailure(Exception exception);
+    void orElseFailure(Throwable exception);
 }

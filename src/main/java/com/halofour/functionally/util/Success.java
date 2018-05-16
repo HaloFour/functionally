@@ -6,6 +6,10 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
+import com.halofour.functionally.util.function.TryBiFunction;
+import com.halofour.functionally.util.function.TryFunction;
+import com.halofour.functionally.util.function.TrySupplier;
+
 /**
  * Represents a computation that has completed successfully with a value
  * @param <T> the type of the value of the computation
@@ -30,7 +34,7 @@ public final class Success<T> implements Try<T>, Serializable {
     }
 
     @Override
-    public boolean isFailure(Class<? extends Exception> exceptionClass) {
+    public boolean isFailure(Class<? extends Throwable> exceptionClass) {
         return false;
     }
 
@@ -40,7 +44,7 @@ public final class Success<T> implements Try<T>, Serializable {
     }
 
     @Override
-    public Optional<Exception> getException() {
+    public Optional<Throwable> getException() {
         return Optional.empty();
     }
 
@@ -63,7 +67,7 @@ public final class Success<T> implements Try<T>, Serializable {
     public <R> Try<R> map(TryFunction<? super T, ? extends R> function) {
         try {
             return Success.of(function.apply(value));
-        } catch (Exception exception) {
+        } catch (Throwable exception) {
             return Failure.of(exception);
         }
     }
@@ -72,7 +76,7 @@ public final class Success<T> implements Try<T>, Serializable {
     public <R> Try<R> flatMap(TryFunction<? super T, Try<R>> function) {
         try {
             return function.apply(value);
-        } catch (Exception exception) {
+        } catch (Throwable exception) {
             return Failure.of(exception);
         }
     }
@@ -94,38 +98,38 @@ public final class Success<T> implements Try<T>, Serializable {
                 return this;
             }
             return Failure.of(new NoSuchElementException("The value did not meet the predicate."));
-        } catch (Exception exception) {
+        } catch (Throwable exception) {
             return Failure.of(exception);
         }
     }
 
     @Override
-    public Success<T> recover(TryFunction<? super Exception, ? extends T> function) {
+    public Success<T> recover(TryFunction<? super Throwable, ? extends T> function) {
         return this;
     }
 
     @Override
-    public <E extends Exception> Success<T> recover(Class<E> exceptionClass, TryFunction<? super E, ? extends T> function) {
+    public <E extends Throwable> Success<T> recover(Class<E> exceptionClass, TryFunction<? super E, ? extends T> function) {
         return this;
     }
 
     @Override
-    public Success<T> recoverWith(TryFunction<? super Exception, Try<T>> function) {
+    public Success<T> recoverWith(TryFunction<? super Throwable, Try<T>> function) {
         return this;
     }
 
     @Override
-    public <E extends Exception> Success<T> recoverWith(Class<E> exceptionClass, TryFunction<? super E, Try<T>> function) {
+    public <E extends Throwable> Success<T> recoverWith(Class<E> exceptionClass, TryFunction<? super E, Try<T>> function) {
         return this;
     }
 
     @Override
-    public <R> Try<R> fold(TryFunction<? super Exception, ? extends R> onFailure, TryFunction<? super T, ? extends R> onSuccess) {
+    public <R> Try<R> fold(TryFunction<? super Throwable, ? extends R> onFailure, TryFunction<? super T, ? extends R> onSuccess) {
         return map(onSuccess);
     }
 
     @Override
-    public Failure<Exception> failed() {
+    public Failure<Throwable> failed() {
         return Failure.of(new UnsupportedOperationException("Cannot invert Success."));
     }
 
@@ -135,10 +139,10 @@ public final class Success<T> implements Try<T>, Serializable {
     }
 
     @Override
-    public void ifFailure(Consumer<? super Exception> consumer) { }
+    public void ifFailure(Consumer<? super Throwable> consumer) { }
 
     @Override
-    public <E extends Exception> void ifFailure(Class<E> exceptionClass, Consumer<? super E> consumer) { }
+    public <E extends Throwable> void ifFailure(Class<E> exceptionClass, Consumer<? super E> consumer) { }
 
     @Override
     public <R> Try<R> match(Consumer<TryMatcher<T, R>> match) {
@@ -234,7 +238,7 @@ public final class Success<T> implements Try<T>, Serializable {
         }
 
         @Override
-        public void orElseFailure(Exception exception) {
+        public void orElseFailure(Throwable exception) {
             if (result == null) {
                 result = Failure.of(exception);
             }

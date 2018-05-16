@@ -4,6 +4,9 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
+import com.halofour.functionally.util.function.TryBiFunction;
+import com.halofour.functionally.util.function.TryFunction;
+import com.halofour.functionally.util.function.TrySupplier;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -15,6 +18,7 @@ import org.mockito.runners.MockitoJUnitRunner;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.isA;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
@@ -52,29 +56,70 @@ public class FailureTest {
     private Predicate<String> predicate;
 
     @Mock
-    private TryFunction<Exception, String> recoverFunction;
+    private TryFunction<Throwable, String> recoverFunction;
 
     @Mock
-    private TryFunction<Exception, String> recoverFunction2;
+    private TryFunction<Throwable, String> recoverFunction2;
 
     @Mock
-    private TryFunction<Exception, Try<String>> recoverWithFunction;
+    private TryFunction<Throwable, Try<String>> recoverWithFunction;
 
     @Mock
     private Consumer<String> ifSuccessConsumer;
 
     @Mock
-    private Consumer<Exception> ifFailureConsumer;
+    private Consumer<Throwable> ifFailureConsumer;
 
     @Mock
     private TrySupplier<String> supplier;
 
     @Mock
-    private Predicate<Exception> failurePredicate;
+    private Predicate<Throwable> failurePredicate;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() throws Throwable {
         underTest = Try.failure(EXCEPTION);
+    }
+
+    @Test
+    public void testFailureOf() {
+        assertThat(Failure.of(EXCEPTION).getException())
+                .isEqualTo(Optional.of(EXCEPTION));
+    }
+
+    @Test
+    public void testFailureOfWithType() {
+        assertThat(Failure.of(String.class, EXCEPTION).getException())
+                .isEqualTo(Optional.of(EXCEPTION));
+    }
+
+    @Test
+    public void testFatalVirtualMachineError() {
+        expectedException.expect(OutOfMemoryError.class);
+
+        Failure.of(new OutOfMemoryError());
+    }
+
+    @Test
+    public void testFatalThreadDeath() {
+        expectedException.expect(ThreadDeath.class);
+
+        Failure.of(new ThreadDeath());
+    }
+
+    @Test
+    public void testFatalLinkageError() {
+        expectedException.expect(LinkageError.class);
+
+        Failure.of(new LinkageError());
+    }
+
+    @Test
+    public void testFatalInterruptedException() {
+        expectedException.expect(RuntimeException.class);
+        expectedException.expectCause(isA(InterruptedException.class));
+
+        Failure.of(new InterruptedException());
     }
 
     @Test
@@ -103,7 +148,7 @@ public class FailureTest {
     }
 
     @Test
-    public void testGet() throws Exception {
+    public void testGet() throws Throwable {
         expectedException.expect(is(EXCEPTION));
 
         underTest.get();
@@ -111,7 +156,7 @@ public class FailureTest {
 
     @Test
     public void testGetException() {
-        Optional<Exception> result = underTest.getException();
+        Optional<Throwable> result = underTest.getException();
         assertThat(result.isPresent()).isTrue();
         assertThat(result.get()).isEqualTo(EXCEPTION);
     }
@@ -135,7 +180,7 @@ public class FailureTest {
     }
 
     @Test
-    public void testMap() throws Exception {
+    public void testMap() throws Throwable {
         Try<String> result = underTest.map(mapFunction);
 
         assertThat(result).isEqualTo(underTest);
@@ -144,7 +189,7 @@ public class FailureTest {
     }
 
     @Test
-    public void testFlatMap() throws Exception {
+    public void testFlatMap() throws Throwable {
         Try<String> result = underTest.flatMap(flatMapFunction);
 
         assertThat(result).isEqualTo(underTest);
@@ -153,7 +198,7 @@ public class FailureTest {
     }
 
     @Test
-    public void testCombineMap() throws Exception {
+    public void testCombineMap() throws Throwable {
         Try<String> other = Try.success(SUCCESS);
         Try<String> result = underTest.combineMap(other, combineMapFunction);
 
@@ -163,7 +208,7 @@ public class FailureTest {
     }
 
     @Test
-    public void testCombineFlatMap() throws Exception {
+    public void testCombineFlatMap() throws Throwable {
         Try<String> other = Try.success(SUCCESS);
         Try<String> result = underTest.combineFlatMap(other, combineFlatMapFunction);
 
@@ -182,7 +227,7 @@ public class FailureTest {
     }
 
     @Test
-    public void testRecover() throws Exception {
+    public void testRecover() throws Throwable {
         doReturn(SUCCESS).when(recoverFunction).apply(EXCEPTION);
 
         Try<String> result = underTest.recover(recoverFunction);
@@ -194,7 +239,7 @@ public class FailureTest {
     }
 
     @Test
-    public void testRecoverThrows() throws Exception {
+    public void testRecoverThrows() throws Throwable {
         doThrow(OTHER_EXCEPTION).when(recoverFunction).apply(EXCEPTION);
 
         Try<String> result = underTest.recover(recoverFunction);
@@ -206,7 +251,7 @@ public class FailureTest {
     }
 
     @Test
-    public void testRecoverSpecificException() throws Exception {
+    public void testRecoverSpecificException() throws Throwable {
         doReturn(SUCCESS).when(recoverFunction).apply(EXCEPTION);
 
         Try<String> result = underTest.recover(IllegalArgumentException.class, recoverFunction);
@@ -218,7 +263,7 @@ public class FailureTest {
     }
 
     @Test
-    public void testRecoverSpecificExceptionThrows() throws Exception {
+    public void testRecoverSpecificExceptionThrows() throws Throwable {
         doThrow(OTHER_EXCEPTION).when(recoverFunction).apply(EXCEPTION);
 
         Try<String> result = underTest.recover(IllegalArgumentException.class, recoverFunction);
@@ -230,7 +275,7 @@ public class FailureTest {
     }
 
     @Test
-    public void testRecoverSpecificExceptionBaseClass() throws Exception {
+    public void testRecoverSpecificExceptionBaseClass() throws Throwable {
         doReturn(SUCCESS).when(recoverFunction).apply(EXCEPTION);
 
         Try<String> result = underTest.recover(Exception.class, recoverFunction);
@@ -242,7 +287,7 @@ public class FailureTest {
     }
 
     @Test
-    public void testRecoverSpecificExceptionMismatch() throws Exception {
+    public void testRecoverSpecificExceptionMismatch() throws Throwable {
         doReturn(SUCCESS).when(recoverFunction).apply(EXCEPTION);
 
         Try<String> result = underTest.recover(NullPointerException.class, recoverFunction);
@@ -253,7 +298,7 @@ public class FailureTest {
     }
 
     @Test
-    public void testRecoverWithSuccess() throws Exception {
+    public void testRecoverWithSuccess() throws Throwable {
         Try<String> expected = Try.success(SUCCESS);
         doReturn(expected).when(recoverWithFunction).apply(EXCEPTION);
 
@@ -265,7 +310,7 @@ public class FailureTest {
     }
 
     @Test
-    public void testRecoverWithFailure() throws Exception {
+    public void testRecoverWithFailure() throws Throwable {
         Try<String> expected = Try.failure(OTHER_EXCEPTION);
         doReturn(expected).when(recoverWithFunction).apply(EXCEPTION);
 
@@ -277,7 +322,7 @@ public class FailureTest {
     }
 
     @Test
-    public void testRecoverWithThrows() throws Exception {
+    public void testRecoverWithThrows() throws Throwable {
         doThrow(OTHER_EXCEPTION).when(recoverWithFunction).apply(EXCEPTION);
 
         Try<String> result = underTest.recoverWith(recoverWithFunction);
@@ -289,7 +334,7 @@ public class FailureTest {
     }
 
     @Test
-    public void testRecoverWithSpecificException() throws Exception {
+    public void testRecoverWithSpecificException() throws Throwable {
         Try<String> expected = Try.success(SUCCESS);
         doReturn(expected).when(recoverWithFunction).apply(EXCEPTION);
 
@@ -302,7 +347,7 @@ public class FailureTest {
     }
 
     @Test
-    public void testRecoverWithSpecificExceptionThrows() throws Exception {
+    public void testRecoverWithSpecificExceptionThrows() throws Throwable {
         doThrow(OTHER_EXCEPTION).when(recoverWithFunction).apply(EXCEPTION);
 
         Try<String> result = underTest.recoverWith(IllegalArgumentException.class, recoverWithFunction);
@@ -314,7 +359,7 @@ public class FailureTest {
     }
 
     @Test
-    public void testRecoverWithSpecificExceptionBaseClass() throws Exception {
+    public void testRecoverWithSpecificExceptionBaseClass() throws Throwable {
         Try<String> expected = Try.success(SUCCESS);
         doReturn(expected).when(recoverWithFunction).apply(EXCEPTION);
 
@@ -326,7 +371,7 @@ public class FailureTest {
     }
 
     @Test
-    public void testRecoverWithSpecificExceptionMismatch() throws Exception {
+    public void testRecoverWithSpecificExceptionMismatch() throws Throwable {
         Try<String> result = underTest.recoverWith(NullPointerException.class, recoverWithFunction);
 
         assertThat(result).isEqualTo(underTest);
@@ -335,7 +380,7 @@ public class FailureTest {
     }
 
     @Test
-    public void testFold() throws Exception {
+    public void testFold() throws Throwable {
         doReturn(OTHER).when(recoverFunction).apply(EXCEPTION);
 
         Try<String> result = underTest.fold(recoverFunction, mapFunction);
@@ -348,7 +393,7 @@ public class FailureTest {
     }
 
     @Test
-    public void testFoldThrows() throws Exception {
+    public void testFoldThrows() throws Throwable {
         doThrow(OTHER_EXCEPTION).when(recoverFunction).apply(EXCEPTION);
 
         Try<String> result = underTest.fold(recoverFunction, mapFunction);
@@ -361,8 +406,8 @@ public class FailureTest {
     }
 
     @Test
-    public void testFailed() throws Exception {
-        Try<Exception> inverted = underTest.failed();
+    public void testFailed() throws Throwable {
+        Try<Throwable> inverted = underTest.failed();
 
         assertThat(inverted).isInstanceOf(Success.class);
         assertThat(inverted.get()).isEqualTo(EXCEPTION);
@@ -404,7 +449,7 @@ public class FailureTest {
     }
 
     @Test
-    public void testMatchAnyFailure() throws Exception {
+    public void testMatchAnyFailure() throws Throwable {
         doReturn(SUCCESS).when(recoverFunction).apply(EXCEPTION);
 
         Try<String> result = underTest.match(m -> m
@@ -418,7 +463,7 @@ public class FailureTest {
     }
 
     @Test
-    public void testMatchSpecificFailure() throws Exception {
+    public void testMatchSpecificFailure() throws Throwable {
         doReturn(SUCCESS).when(recoverFunction).apply(EXCEPTION);
 
         Try<String> result = underTest.match(m -> m
@@ -432,7 +477,7 @@ public class FailureTest {
     }
 
     @Test
-    public void testMatchSpecificFailureBaseClass() throws Exception {
+    public void testMatchSpecificFailureBaseClass() throws Throwable {
         doReturn(SUCCESS).when(recoverFunction).apply(EXCEPTION);
 
         Try<String> result = underTest.match(m -> m
@@ -446,7 +491,7 @@ public class FailureTest {
     }
 
     @Test
-    public void testMatchSpecificFailureMismatch() throws Exception {
+    public void testMatchSpecificFailureMismatch() throws Throwable {
         underTest.match(m -> m
                 .failure(NullPointerException.class, recoverFunction)
                 .orElseSuccess(SUCCESS)
@@ -456,7 +501,7 @@ public class FailureTest {
     }
 
     @Test
-    public void testMatchSpecificFailureMismatchFallthrough() throws Exception {
+    public void testMatchSpecificFailureMismatchFallthrough() throws Throwable {
         doReturn(SUCCESS).when(recoverFunction2).apply(EXCEPTION);
 
         Try<String> result = underTest.match(m -> m
@@ -472,7 +517,7 @@ public class FailureTest {
     }
 
     @Test
-    public void testMatchExceptionWhen() throws Exception {
+    public void testMatchExceptionWhen() throws Throwable {
         doReturn(true).when(failurePredicate).test(EXCEPTION);
         doReturn(SUCCESS).when(recoverFunction).apply(EXCEPTION);
 
@@ -486,7 +531,7 @@ public class FailureTest {
     }
 
     @Test
-    public void testMatchExceptionWhenDoesNotMatch() throws Exception {
+    public void testMatchExceptionWhenDoesNotMatch() throws Throwable {
         doReturn(false).when(failurePredicate).test(EXCEPTION);
 
         underTest.match(m -> m
@@ -499,7 +544,7 @@ public class FailureTest {
     }
 
     @Test
-    public void testMatchOrElse() throws Exception {
+    public void testMatchOrElse() throws Throwable {
         doReturn(SUCCESS).when(supplier).get();
 
         Try<String> result = underTest.match(m -> m
@@ -513,7 +558,7 @@ public class FailureTest {
     }
 
     @Test
-    public void testMatchOrElseSuccess() throws Exception {
+    public void testMatchOrElseSuccess() throws Throwable {
         Try<String> result = underTest.match(m -> m
                 .orElseSuccess(SUCCESS)
         );
@@ -523,7 +568,7 @@ public class FailureTest {
     }
 
     @Test
-    public void testMatchOrElseFailure() throws Exception {
+    public void testMatchOrElseFailure() throws Throwable {
         Try<String> result = underTest.match(m -> m
                 .orElseFailure(OTHER_EXCEPTION)
         );
@@ -533,7 +578,7 @@ public class FailureTest {
     }
 
     @Test
-    public void testMatchSuccess() throws Exception{
+    public void testMatchSuccess() throws Throwable{
         underTest.match(m -> m
                 .success(mapFunction)
                 .orElseSuccess(SUCCESS)
@@ -543,7 +588,7 @@ public class FailureTest {
     }
 
     @Test
-    public void testMatchSuccessValue() throws Exception {
+    public void testMatchSuccessValue() throws Throwable {
         underTest.match(m -> m
                 .success(SUCCESS, mapFunction)
                 .orElseSuccess(SUCCESS)
@@ -553,7 +598,7 @@ public class FailureTest {
     }
 
     @Test
-    public void testMatchSuccessWhen() throws Exception {
+    public void testMatchSuccessWhen() throws Throwable {
         doReturn(true).when(predicate).test(SUCCESS);
 
         underTest.match(m -> m

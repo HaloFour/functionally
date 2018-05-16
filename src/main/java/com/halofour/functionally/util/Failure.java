@@ -5,6 +5,10 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
+import com.halofour.functionally.util.function.TryBiFunction;
+import com.halofour.functionally.util.function.TryFunction;
+import com.halofour.functionally.util.function.TrySupplier;
+
 /**
  * Represents a computation that has failed with an exception
  * @param <T> the type of the result of the computation had it been successful
@@ -12,9 +16,9 @@ import java.util.function.Predicate;
 public final class Failure<T> implements Try<T> {
     private static final long serialVersionUID = 2452948373057856082L;
 
-    private final Exception exception;
+    private final Throwable exception;
 
-    private Failure(Exception exception) {
+    private Failure(Throwable exception) {
         this.exception = exception;
     }
 
@@ -29,17 +33,17 @@ public final class Failure<T> implements Try<T> {
     }
 
     @Override
-    public boolean isFailure(Class<? extends Exception> exceptionClass) {
+    public boolean isFailure(Class<? extends Throwable> exceptionClass) {
         return exceptionClass.isInstance(exception);
     }
 
     @Override
-    public T get() throws Exception {
+    public T get() throws Throwable {
         throw exception;
     }
 
     @Override
-    public Optional<Exception> getException() {
+    public Optional<Throwable> getException() {
         return Optional.of(exception);
     }
 
@@ -88,16 +92,16 @@ public final class Failure<T> implements Try<T> {
     }
 
     @Override
-    public Try<T> recover(TryFunction<? super Exception, ? extends T> function) {
-        return recover(Exception.class, function);
+    public Try<T> recover(TryFunction<? super Throwable, ? extends T> function) {
+        return recover(Throwable.class, function);
     }
 
     @Override
-    public <E extends Exception> Try<T> recover(Class<E> exceptionClass, TryFunction<? super E, ? extends T> function) {
+    public <E extends Throwable> Try<T> recover(Class<E> exceptionClass, TryFunction<? super E, ? extends T> function) {
         if (exceptionClass.isInstance(exception)) {
             try {
                 return Success.of(function.apply(exceptionClass.cast(exception)));
-            } catch (Exception exception) {
+            } catch (Throwable exception) {
                 return Failure.of(exception);
             }
         }
@@ -105,16 +109,16 @@ public final class Failure<T> implements Try<T> {
     }
 
     @Override
-    public Try<T> recoverWith(TryFunction<? super Exception, Try<T>> function) {
-        return recoverWith(Exception.class, function);
+    public Try<T> recoverWith(TryFunction<? super Throwable, Try<T>> function) {
+        return recoverWith(Throwable.class, function);
     }
 
     @Override
-    public <E extends Exception> Try<T> recoverWith(Class<E> exceptionClass, TryFunction<? super E, Try<T>> function) {
+    public <E extends Throwable> Try<T> recoverWith(Class<E> exceptionClass, TryFunction<? super E, Try<T>> function) {
         if (exceptionClass.isInstance(exception)) {
             try {
                 return function.apply(exceptionClass.cast(exception));
-            } catch (Exception exception) {
+            } catch (Throwable exception) {
                 return Failure.of(exception);
             }
         }
@@ -122,16 +126,16 @@ public final class Failure<T> implements Try<T> {
     }
 
     @Override
-    public <R> Try<R> fold(TryFunction<? super Exception, ? extends R> onFailure, TryFunction<? super T, ? extends R> onSuccess) {
+    public <R> Try<R> fold(TryFunction<? super Throwable, ? extends R> onFailure, TryFunction<? super T, ? extends R> onSuccess) {
         try {
             return Success.of(onFailure.apply(exception));
-        } catch (Exception exception) {
+        } catch (Throwable exception) {
             return Failure.of(exception);
         }
     }
 
     @Override
-    public Try<Exception> failed() {
+    public Try<Throwable> failed() {
         return Success.of(exception);
     }
 
@@ -139,12 +143,12 @@ public final class Failure<T> implements Try<T> {
     public void ifSuccess(Consumer<? super T> consumer) { }
 
     @Override
-    public void ifFailure(Consumer<? super Exception> consumer) {
+    public void ifFailure(Consumer<? super Throwable> consumer) {
         consumer.accept(exception);
     }
 
     @Override
-    public <E extends Exception> void ifFailure(Class<E> exceptionClass, Consumer<? super E> consumer) {
+    public <E extends Throwable> void ifFailure(Class<E> exceptionClass, Consumer<? super E> consumer) {
         if (exceptionClass.isInstance(exception)) {
             consumer.accept(exceptionClass.cast(exception));
         }
@@ -193,8 +197,17 @@ public final class Failure<T> implements Try<T> {
      * @param <T> the type of the result of the computation had it been successful
      * @return a {@link Failure}
      */
-    public static <T> Failure<T> of(Exception exception) {
+    public static <T> Failure<T> of(Throwable exception) {
         Objects.requireNonNull(exception, "exception must not be null.");
+        if (exception instanceof VirtualMachineError) {
+            throw (VirtualMachineError) exception;
+        } else if (exception instanceof ThreadDeath) {
+            throw (ThreadDeath) exception;
+        } else if (exception instanceof LinkageError) {
+            throw (LinkageError) exception;
+        } else if (exception instanceof InterruptedException) {
+            throw new RuntimeException(exception);
+        }
         return new Failure<>(exception);
     }
 
@@ -205,9 +218,8 @@ public final class Failure<T> implements Try<T> {
      * @param <T> the type of the result of the computation had it been successful
      * @return a {@link Failure}
      */
-    public static <T> Failure<T> of(Class<T> valueClass, Exception exception) {
-        Objects.requireNonNull(exception, "exception must not be null.");
-        return new Failure<>(exception);
+    public static <T> Failure<T> of(Class<T> valueClass, Throwable exception) {
+        return Failure.of(exception);
     }
 
     private static final class Matcher<T, R> implements TryMatcher<T, R> {
@@ -220,7 +232,7 @@ public final class Failure<T> implements Try<T> {
         }
 
         @Override
-        public TryMatcher<T, R> failure(TryFunction<Exception, ? extends R> function) {
+        public TryMatcher<T, R> failure(TryFunction<Throwable, ? extends R> function) {
             if (result == null) {
                 result = failure.recover(function);
             }
@@ -228,7 +240,7 @@ public final class Failure<T> implements Try<T> {
         }
 
         @Override
-        public <E extends Exception> TryMatcher<T, R> failure(Class<E> exceptionClass, TryFunction<? super E, ? extends R> function) {
+        public <E extends Throwable> TryMatcher<T, R> failure(Class<E> exceptionClass, TryFunction<? super E, ? extends R> function) {
             if (result == null && exceptionClass.isInstance(failure.exception)) {
                 result = failure.recover(exceptionClass, function);
             }
@@ -236,7 +248,7 @@ public final class Failure<T> implements Try<T> {
         }
 
         @Override
-        public TryMatcher<T, R> failureWhen(Predicate<? super Exception> predicate, TryFunction<? super Exception, ? extends R> function) {
+        public TryMatcher<T, R> failureWhen(Predicate<? super Throwable> predicate, TryFunction<? super Throwable, ? extends R> function) {
             if (result == null && predicate.test(failure.exception)) {
                 result = failure.recover(function);
             }
@@ -258,7 +270,7 @@ public final class Failure<T> implements Try<T> {
         }
 
         @Override
-        public void orElseFailure(Exception exception) {
+        public void orElseFailure(Throwable exception) {
             if (result == null) {
                 result = Try.failure(exception);
             }

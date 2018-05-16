@@ -1,5 +1,6 @@
 package com.halofour.functionally.util;
 
+import com.halofour.functionally.util.function.TrySupplier;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -26,7 +27,7 @@ public class TryTest {
     private TrySupplier<String> supplier;
 
     @Test
-    public void testSuccess() throws Exception {
+    public void testSuccess() throws Throwable {
         Try<String> t = Try.success(SUCCESS);
 
         assertThat(t).isInstanceOf(Success.class);
@@ -48,7 +49,7 @@ public class TryTest {
     }
 
     @Test
-    public void testFrom() throws Exception {
+    public void testFrom() throws Throwable {
         doReturn(SUCCESS).when(supplier).get();
 
         Try<String> t = Try.from(supplier);
@@ -58,7 +59,7 @@ public class TryTest {
     }
 
     @Test
-    public void testFromThrows() throws Exception {
+    public void testFromThrows() throws Throwable {
         doThrow(EXCEPTION).when(supplier).get();
 
         Try<String> t = Try.from(supplier);

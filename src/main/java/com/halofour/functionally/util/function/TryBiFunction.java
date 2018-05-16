@@ -1,4 +1,4 @@
-package com.halofour.functionally.util;
+package com.halofour.functionally.util.function;
 
 /**
  * Represents a function that accepts two arguments and produces a result. This is the two-arity specialization of {@link TryFunction}.
@@ -13,7 +13,7 @@ public interface TryBiFunction<T, U, R> {
      * @param value1 the first argument
      * @param value2 the second argument
      * @return the function result
-     * @throws Exception an exception
+     * @throws Throwable an exception
      */
-    R apply(T value1, U value2) throws Exception;
+    R apply(T value1, U value2) throws Throwable;
 }

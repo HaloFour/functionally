@@ -1,4 +1,4 @@
-package com.halofour.functionally.util;
+package com.halofour.functionally.util.function;
 
 /**
  * Represents a function that accepts one argument and produces a result and can fail with an exception.
@@ -11,7 +11,7 @@ public interface TryFunction<T, R> {
      * Applies this function to the given argument.
      * @param value the function argument
      * @return the function result
-     * @throws Exception an exception
+     * @throws Throwable an exception
      */
-    R apply(T value) throws Exception;
+    R apply(T value) throws Throwable;
 }
